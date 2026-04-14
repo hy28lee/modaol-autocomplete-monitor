@@ -1,0 +1,56 @@
+name: modaol-weekly-report
+
+on:
+  schedule:
+    # 매주 월요일 오전 9시(KST) = 일요일 24시(UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    # 수동 실행도 가능
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      # 누적 트래커 데이터 복원
+      - name: 트래커 데이터 복원
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: tracker-data
+          path: .
+          search_artifacts: true
+          if_no_artifact_found: warn
+
+      - name: 주간 리포트 생성
+        id: report
+        run: |
+          python tracker_ci.py report | tee report_result.txt
+          if grep -q "WEEKLY_REPORT_READY" report_result.txt; then
+            echo "report_ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "report_ready=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 주간 리포트 이메일 발송
+        if: steps.report.outputs.report_ready == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "📊 모다올 주간 키워드 포지션 리포트"
+          body: file://weekly_report.txt
+          to: snuhkist83@gmail.com, ceo@moainetworks.com
+          from: 모다올 모니터링 <${{ secrets.GMAIL_USER }}>

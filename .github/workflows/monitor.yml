@@ -23,11 +23,20 @@ jobs:
       - name: 의존성 설치
         run: pip install requests
 
+      # 이전 트래커 데이터 복원 (누적 데이터 유지)
+      - name: 트래커 데이터 복원
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: tracker-data
+          path: .
+          search_artifacts: true
+          if_no_artifact_found: warn
+
+      # 모니터링 + 트래커 기록 동시 실행
       - name: 모니터링 실행
         id: check
         run: |
-          python monitor_ci.py | tee result.txt
-          # 부정 키워드 감지 여부를 output으로 전달
+          python tracker_ci.py record | tee result.txt
           if grep -q "ALERT_DETECTED" result.txt; then
             echo "alert_found=true" >> $GITHUB_OUTPUT
           else
@@ -47,10 +56,12 @@ jobs:
           to: snuhkist83@gmail.com, ceo@moainetworks.com
           from: 모다올 모니터링 <${{ secrets.GMAIL_USER }}>
 
-      - name: 로그 저장
+      # 트래커 데이터 저장 (다음 실행에서 복원)
+      - name: 트래커 데이터 저장
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: monitor-log-${{ github.run_number }}
-          path: monitor_log.json
+          name: tracker-data
+          path: tracker_data.json
           retention-days: 90
+          overwrite: true
