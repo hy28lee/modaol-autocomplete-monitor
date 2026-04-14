@@ -1,0 +1,23 @@
+{
+  "brand_keywords": ["모다올", "모다올의원", "modaol"],
+  "negative_terms": ["실패", "부작용", "사기", "피해", "소송", "고소", "폐업", "망", "최악", "후회"],
+  "check_interval_minutes": 60,
+  "log_dir": "logs",
+  "report_dir": "reports",
+  "alert": {
+    "console": true,
+    "telegram": {
+      "enabled": false,
+      "bot_token": "YOUR_BOT_TOKEN",
+      "chat_id": "YOUR_CHAT_ID"
+    },
+    "email": {
+      "enabled": false,
+      "smtp_server": "smtp.gmail.com",
+      "smtp_port": 587,
+      "sender": "your@gmail.com",
+      "password": "your_app_password",
+      "recipient": "alert@modaol.co.kr"
+    }
+  }
+}

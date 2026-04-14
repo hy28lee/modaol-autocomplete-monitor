@@ -1,0 +1,56 @@
+name: 모다올 자동완성 모니터링
+
+on:
+  schedule:
+    # 매시간 정각에 실행 (UTC 기준, KST = UTC+9)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # 수동 실행도 가능
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      - name: 모니터링 실행
+        id: check
+        run: |
+          python monitor_ci.py | tee result.txt
+          # 부정 키워드 감지 여부를 output으로 전달
+          if grep -q "ALERT_DETECTED" result.txt; then
+            echo "alert_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "alert_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 알림 이메일 발송
+        if: steps.check.outputs.alert_found == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "🚨 모다올 자동완성 부정 키워드 감지"
+          body: file://alert_email.txt
+          to: snuhkist83@gmail.com, ceo@moainetworks.com
+          from: 모다올 모니터링 <${{ secrets.GMAIL_USER }}>
+
+      - name: 로그 저장
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-log-${{ github.run_number }}
+          path: monitor_log.json
+          retention-days: 90
