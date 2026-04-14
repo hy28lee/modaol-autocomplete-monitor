@@ -2,10 +2,11 @@ name: modaol-autocomplete-monitor
 
 on:
   schedule:
-    # 매시간 정각에 실행 (UTC 기준, KST = UTC+9)
     - cron: '0 * * * *'
   workflow_dispatch:
-    # 수동 실행도 가능
+
+permissions:
+  contents: write
 
 jobs:
   monitor:
@@ -23,17 +24,7 @@ jobs:
       - name: 의존성 설치
         run: pip install requests
 
-      # 이전 트래커 데이터 복원 (누적 데이터 유지)
-      - name: 트래커 데이터 복원
-        uses: dawidd6/action-download-artifact@v6
-        with:
-          name: tracker-data
-          path: .
-          search_artifacts: true
-          if_no_artifact_found: warn
-
-      # 모니터링 + 트래커 기록 동시 실행
-      - name: 모니터링 실행
+      - name: 모니터링 + 순위 기록
         id: check
         run: |
           python tracker_ci.py record | tee result.txt
@@ -56,12 +47,10 @@ jobs:
           to: snuhkist83@gmail.com, ceo@moainetworks.com
           from: 모다올 모니터링 <${{ secrets.GMAIL_USER }}>
 
-      # 트래커 데이터 저장 (다음 실행에서 복원)
-      - name: 트래커 데이터 저장
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tracker-data
-          path: tracker_data.json
-          retention-days: 90
-          overwrite: true
+      - name: 트래커 데이터 커밋
+        run: |
+          git config user.name "modaol-bot"
+          git config user.email "bot@modaol.co.kr"
+          git add tracker_data.json
+          git diff --staged --quiet || git commit -m "data: $(date -u +%Y-%m-%dT%H:%M)"
+          git push
