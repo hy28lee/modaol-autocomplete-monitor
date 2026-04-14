@@ -1,4 +1,4 @@
-name: 모다올 자동완성 모니터링
+name: modaol-autocomplete-monitor
 
 on:
   schedule:
