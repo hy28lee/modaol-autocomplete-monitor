@@ -28,14 +28,24 @@ jobs:
         id: check
         run: |
           python tracker_ci.py record | tee result.txt
+
+          # 부정 키워드 감지 여부
           if grep -q "ALERT_DETECTED" result.txt; then
             echo "alert_found=true" >> $GITHUB_OUTPUT
           else
             echo "alert_found=false" >> $GITHUB_OUTPUT
           fi
 
+          # 4시간 간격 이메일 발송 체크 (UTC 0,4,8,12,16,20시)
+          HOUR=$(date -u +%H)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ $((10#$HOUR % 4)) -eq 0 ]; then
+            echo "email_time=true" >> $GITHUB_OUTPUT
+          else
+            echo "email_time=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: 알림 이메일 발송
-        if: steps.check.outputs.alert_found == 'true'
+        if: steps.check.outputs.alert_found == 'true' && steps.check.outputs.email_time == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>모다올 키워드 포지션 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: #0f1923; color: #e0e0e0; padding: 30px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #fff; font-size: 24px; margin-bottom: 5px; }
+        .subtitle { color: #888; font-size: 14px; margin-bottom: 25px; }
+        .status-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .status-dot.live { background: #2ecc71; animation: pulse 2s infinite; }
+        .status-dot.offline { background: #e74c3c; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .status-text { color: #888; font-size: 13px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #1a2733; border-radius: 12px; padding: 20px; text-align: center; }
+        .stat-num { font-size: 36px; font-weight: bold; }
+        .stat-num.red { color: #e74c3c; }
+        .stat-num.green { color: #2ecc71; }
+        .stat-num.blue { color: #3498db; }
+        .stat-num.yellow { color: #f1c40f; }
+        .stat-label { color: #888; font-size: 13px; margin-top: 5px; }
+        .chart-card { background: #1a2733; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        .chart-title { color: #fff; font-size: 16px; font-weight: bold; margin-bottom: 15px; }
+        .chart-note { color: #666; font-size: 12px; margin-top: 8px; }
+        .section-title { color: #fff; font-size: 18px; margin: 25px 0 15px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #243447; color: #aaa; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+        td { padding: 10px 12px; border-bottom: 1px solid #243447; font-size: 14px; }
+        tr:hover { background: #1e3040; }
+        .rank { font-weight: bold; font-size: 16px; }
+        .rank.neg { color: #e74c3c; }
+        .rank.pos { color: #2ecc71; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge.negative { background: #e74c3c30; color: #e74c3c; }
+        .badge.positive { background: #2ecc7130; color: #2ecc71; }
+        .badge.neutral { background: #3498db30; color: #3498db; }
+        .change-item { padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+        .change-item.good { background: #2ecc7115; border-left: 3px solid #2ecc71; }
+        .change-item.bad { background: #e74c3c15; border-left: 3px solid #e74c3c; }
+        .change-item.neutral { background: #3498db15; border-left: 3px solid #3498db; }
+        .btn { background: #3498db; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn:hover { background: #2980b9; }
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .error { text-align: center; padding: 40px; color: #e74c3c; }
+        .footer { text-align: center; color: #555; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #243447; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .filter-btn { background: #243447; color: #aaa; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .filter-btn.active { background: #3498db; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>모다올 키워드 포지션 대시보드</h1>
+        <div class="status-bar">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-text" id="statusText">데이터 로딩 중...</span>
+            <button class="btn" onclick="loadData()">새로고침</button>
+        </div>
+
+        <div class="grid" id="statsGrid">
+            <div class="stat-card"><div class="stat-num" id="negCount">-</div><div class="stat-label">부정 키워드</div></div>
+            <div class="stat-card"><div class="stat-num" id="posCount">-</div><div class="stat-label">긍정 키워드</div></div>
+            <div class="stat-card"><div class="stat-num" id="topNegRank">-</div><div class="stat-label">최상위 부정 순위</div></div>
+            <div class="stat-card"><div class="stat-num" id="totalDays">-</div><div class="stat-label">추적 일수</div></div>
+        </div>
+
+        <div id="changeSummary"></div>
+
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="setDays(0, this)">전체</button>
+            <button class="filter-btn" onclick="setDays(7, this)">7일</button>
+            <button class="filter-btn" onclick="setDays(14, this)">14일</button>
+            <button class="filter-btn" onclick="setDays(30, this)">30일</button>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">부정 키워드 순위 추이</div>
+            <canvas id="negChart" height="120"></canvas>
+            <div class="chart-note">* 그래프가 아래로 갈수록 순위가 낮아짐 = 개선. 위로 가면 악화.</div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">긍정 키워드 순위 추이</div>
+            <canvas id="posChart" height="120"></canvas>
+            <div class="chart-note">* 그래프가 위로 갈수록 순위가 높아짐 = 좋은 것.</div>
+        </div>
+
+        <div class="section-title">현재 자동완성 상세</div>
+        <div class="chart-card" id="detailTable"></div>
+
+        <div class="footer">
+            모다올 자동완성 모니터링 시스템 | 데이터 자동 갱신<br>
+            GitHub에서 매시간 수집된 데이터를 실시간으로 불러옵니다.
+        </div>
+    </div>
+
+    <script>
+        // GitHub Raw URL에서 tracker_data.json을 불러옴
+        const DATA_URL = 'https://raw.githubusercontent.com/hy28lee/modaol-autocomplete-monitor/master/tracker_data.json';
+        const NEGATIVE_TERMS = ['실패', '부작용', '사기', '피해', '소송', '고소', '폐업', '망', '최악', '후회'];
+        const POSITIVE_TERMS = ['후기', '비용', '가격', '생착률', '원장', '비절개', '리뷰', '전후'];
+        const NEG_COLORS = ['#e74c3c', '#c0392b', '#e67e22', '#d35400', '#f39c12'];
+        const POS_COLORS = ['#2ecc71', '#27ae60', '#3498db', '#2980b9', '#1abc9c'];
+
+        let rawData = null;
+        let negChart = null;
+        let posChart = null;
+        let filterDays = 0;
+
+        function classify(term, brandKw) {
+            const suffix = term.replace(brandKw, '').trim();
+            for (const neg of NEGATIVE_TERMS) { if (suffix.includes(neg)) return { sentiment: 'negative', matched: neg }; }
+            for (const pos of POSITIVE_TERMS) { if (suffix.includes(pos)) return { sentiment: 'positive', matched: pos }; }
+            return { sentiment: 'neutral', matched: suffix };
+        }
+
+        function setDays(days, btn) {
+            filterDays = days;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (rawData) render(rawData);
+        }
+
+        async function loadData() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            dot.className = 'status-dot';
+            text.textContent = '데이터 로딩 중...';
+
+            try {
+                const resp = await fetch(DATA_URL + '?t=' + Date.now());
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                rawData = await resp.json();
+                dot.classList.add('live');
+                text.textContent = `마지막 업데이트: ${rawData.records[rawData.records.length - 1]?.timestamp?.slice(0, 16).replace('T', ' ') || '-'} | ${rawData.records.length}건 기록`;
+                render(rawData);
+            } catch (e) {
+                dot.classList.add('offline');
+                text.textContent = '데이터 로딩 실패: ' + e.message;
+
+                // 로컬 파일 시도
+                try {
+                    const localResp = await fetch('tracker_data.json');
+                    if (localResp.ok) {
+                        rawData = await localResp.json();
+                        dot.className = 'status-dot live';
+                        text.textContent = `로컬 데이터 로드 | ${rawData.records.length}건`;
+                        render(rawData);
+                    }
+                } catch (e2) {}
+            }
+        }
+
+        function render(data) {
+            const records = data.records;
+            if (!records.length) return;
+
+            // 날짜별 그룹핑
+            const byDate = {};
+            for (const r of records) {
+                if (!byDate[r.date]) byDate[r.date] = [];
+                byDate[r.date].push(r);
+            }
+
+            let dates = Object.keys(byDate).sort();
+            if (filterDays > 0) {
+                dates = dates.slice(-filterDays);
+            }
+
+            // 일별 키워드 평균 순위
+            const negTracked = {};
+            const posTracked = {};
+
+            for (const date of dates) {
+                for (const r of byDate[date]) {
+                    for (const [brandKw, platforms] of Object.entries(r.keywords || {})) {
+                        for (const [platform, terms] of Object.entries(platforms)) {
+                            if (platform !== 'google') continue;
+                            for (const t of terms) {
+                                const cls = classify(t.term, brandKw);
+                                const bucket = cls.sentiment === 'negative' ? negTracked : cls.sentiment === 'positive' ? posTracked : null;
+                                if (!bucket) continue;
+                                if (!bucket[t.term]) bucket[t.term] = {};
+                                if (!bucket[t.term][date]) bucket[t.term][date] = [];
+                                bucket[t.term][date].push(t.rank);
+                            }
+                        }
+                    }
+                }
+            }
+
+            function avgRanks(dateRanks) {
+                const result = {};
+                for (const [term, dr] of Object.entries(dateRanks)) {
+                    result[term] = {};
+                    for (const [date, ranks] of Object.entries(dr)) {
+                        result[term][date] = ranks.reduce((a, b) => a + b, 0) / ranks.length;
+                    }
+                }
+                return result;
+            }
+
+            const negAvg = avgRanks(negTracked);
+            const posAvg = avgRanks(posTracked);
+
+            // 통계 카드
+            const latestDate = dates[dates.length - 1];
+            const latestNeg = Object.entries(negAvg).filter(([t, dr]) => dr[latestDate]).map(([t, dr]) => ({ term: t, rank: dr[latestDate] }));
+            const latestPos = Object.entries(posAvg).filter(([t, dr]) => dr[latestDate]).map(([t, dr]) => ({ term: t, rank: dr[latestDate] }));
+            latestNeg.sort((a, b) => a.rank - b.rank);
+            latestPos.sort((a, b) => a.rank - b.rank);
+
+            document.getElementById('negCount').textContent = latestNeg.length;
+            document.getElementById('negCount').className = 'stat-num ' + (latestNeg.length > 0 ? 'red' : 'green');
+            document.getElementById('posCount').textContent = latestPos.length;
+            document.getElementById('posCount').className = 'stat-num green';
+            document.getElementById('topNegRank').textContent = latestNeg.length > 0 ? latestNeg[0].rank.toFixed(1) : '-';
+            document.getElementById('topNegRank').className = 'stat-num ' + (latestNeg.length > 0 ? 'yellow' : 'green');
+            document.getElementById('totalDays').textContent = dates.length;
+            document.getElementById('totalDays').className = 'stat-num blue';
+
+            // 변화 요약
+            let changeHtml = '<div class="section-title">순위 변화 요약</div><div class="chart-card">';
+            if (dates.length >= 2) {
+                const first = dates[0], last = dates[dates.length - 1];
+                for (const [term, dr] of Object.entries(negAvg)) {
+                    const firstR = dr[first], lastR = dr[last];
+                    if (firstR != null && lastR != null) {
+                        const diff = lastR - firstR;
+                        if (diff > 0) changeHtml += `<div class="change-item good">"${term}" ${firstR.toFixed(1)}위 → ${lastR.toFixed(1)}위 (▼${diff.toFixed(1)} 하락, 개선)</div>`;
+                        else if (diff < 0) changeHtml += `<div class="change-item bad">"${term}" ${firstR.toFixed(1)}위 → ${lastR.toFixed(1)}위 (▲${Math.abs(diff).toFixed(1)} 상승, 악화)</div>`;
+                        else changeHtml += `<div class="change-item neutral">"${term}" ${lastR.toFixed(1)}위 유지</div>`;
+                    }
+                }
+            } else {
+                changeHtml += '<div class="change-item neutral">데이터가 쌓이면 변화 추이를 보여드립니다.</div>';
+            }
+            changeHtml += '</div>';
+            document.getElementById('changeSummary').innerHTML = changeHtml;
+
+            // 차트
+            const chartOptions = {
+                responsive: true,
+                interaction: { intersect: false, mode: 'index' },
+                scales: {
+                    y: { reverse: true, min: 1, max: 12, ticks: { stepSize: 1, color: '#888' }, grid: { color: '#243447' }, title: { display: true, text: '순위 (1=최상위)', color: '#888' } },
+                    x: { ticks: { color: '#888', maxRotation: 45 }, grid: { color: '#243447' } }
+                },
+                plugins: {
+                    legend: { labels: { color: '#ccc' } },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '위' } }
+                }
+            };
+
+            function makeDatasets(avgData, colors) {
+                return Object.entries(avgData).map(([term, dr], i) => ({
+                    label: term,
+                    data: dates.map(d => dr[d] ?? null),
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: colors[i % colors.length] + '20',
+                    tension: 0.3, pointRadius: 4, pointHoverRadius: 6, spanGaps: true,
+                }));
+            }
+
+            if (negChart) negChart.destroy();
+            if (posChart) posChart.destroy();
+
+            negChart = new Chart(document.getElementById('negChart'), {
+                type: 'line',
+                data: { labels: dates, datasets: makeDatasets(negAvg, NEG_COLORS) },
+                options: chartOptions
+            });
+
+            posChart = new Chart(document.getElementById('posChart'), {
+                type: 'line',
+                data: { labels: dates, datasets: makeDatasets(posAvg, POS_COLORS) },
+                options: chartOptions
+            });
+
+            // 상세 테이블
+            let tableHtml = '<table><tr><th>순위</th><th>키워드</th><th>분류</th><th>플랫폼</th></tr>';
+            const allLatest = [...latestNeg.map(n => ({...n, sentiment: 'negative'})), ...latestPos.map(p => ({...p, sentiment: 'positive'}))];
+            // 중립도 추가
+            const lastRecord = records[records.length - 1];
+            if (lastRecord) {
+                for (const [brandKw, platforms] of Object.entries(lastRecord.keywords || {})) {
+                    for (const t of (platforms.google || [])) {
+                        const cls = classify(t.term, brandKw);
+                        if (cls.sentiment === 'neutral' && !allLatest.find(a => a.term === t.term)) {
+                            allLatest.push({ term: t.term, rank: t.rank, sentiment: 'neutral' });
+                        }
+                    }
+                }
+            }
+            allLatest.sort((a, b) => a.rank - b.rank);
+
+            for (const item of allLatest) {
+                const rankClass = item.sentiment === 'negative' ? 'neg' : item.sentiment === 'positive' ? 'pos' : '';
+                const badgeText = { negative: '부정', positive: '긍정', neutral: '중립' }[item.sentiment];
+                tableHtml += `<tr><td class="rank ${rankClass}">#${typeof item.rank === 'number' ? item.rank.toFixed(1) : item.rank}</td><td>${item.term}</td><td><span class="badge ${item.sentiment}">${badgeText}</span></td><td>Google</td></tr>`;
+            }
+            tableHtml += '</table>';
+            document.getElementById('detailTable').innerHTML = tableHtml;
+        }
+
+        // 초기 로드
+        loadData();
+
+        // 5분마다 자동 갱신
+        setInterval(loadData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
