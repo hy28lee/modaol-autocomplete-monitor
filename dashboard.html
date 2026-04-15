@@ -106,8 +106,8 @@
         const DATA_URL = 'https://raw.githubusercontent.com/hy28lee/modaol-autocomplete-monitor/master/tracker_data.json';
         const NEGATIVE_TERMS = ['실패', '부작용', '사기', '피해', '소송', '고소', '폐업', '망', '최악', '후회'];
         const POSITIVE_TERMS = ['후기', '비용', '가격', '생착률', '원장', '비절개', '리뷰', '전후'];
-        const NEG_COLORS = ['#e74c3c', '#c0392b', '#e67e22', '#d35400', '#f39c12'];
-        const POS_COLORS = ['#2ecc71', '#27ae60', '#3498db', '#2980b9', '#1abc9c'];
+        const NEG_COLORS = ['#e74c3c', '#ff6b35', '#ffd23f', '#c44dff', '#ff4081'];
+        const POS_COLORS = ['#2ecc71', '#3498db', '#00bcd4', '#ab47bc', '#ff9800'];
 
         let rawData = null;
         let negChart = null;
@@ -271,7 +271,7 @@
                     data: ranks,
                     borderColor: colors[i % colors.length],
                     backgroundColor: colors[i % colors.length] + '20',
-                    tension: 0.3, pointRadius: 4, pointHoverRadius: 6, spanGaps: true,
+                    tension: 0.3, pointRadius: 5, pointHoverRadius: 8, borderWidth: 3, spanGaps: true, borderDash: i % 2 === 1 ? [5, 5] : [],
                 }));
             }
 
