@@ -25,7 +25,18 @@ BASE_DIR = Path(__file__).parent
 DATA_FILE = BASE_DIR / "tracker_data.json"
 KST = timezone(timedelta(hours=9))
 
-BRAND_KEYWORDS = ["모다올", "모다 올", "모다올의원"]
+def spacing_variants(word):
+    results = []
+    for mask in range(2 ** (len(word) - 1)):
+        variant = word[0]
+        for i in range(1, len(word)):
+            if mask & (1 << (i - 1)):
+                variant += " "
+            variant += word[i]
+        results.append(variant)
+    return results
+
+BRAND_KEYWORDS = spacing_variants("모다올") + ["모다올의원"]
 NEGATIVE_TERMS = ["실패", "부작용", "사기", "피해", "소송", "고소", "폐업", "망", "최악", "후회"]
 POSITIVE_TERMS = ["후기", "비용", "가격", "생착률", "원장", "비절개", "리뷰", "전후"]
 

@@ -1,5 +1,5 @@
 {
-  "brand_keywords": ["모다올", "모다 올", "모다올의원", "modaol"],
+  "brand_keywords": ["모다올", "모 다올", "모다 올", "모 다 올", "모다올의원", "modaol"],
   "negative_terms": ["실패", "부작용", "사기", "피해", "소송", "고소", "폐업", "망", "최악", "후회"],
   "check_interval_minutes": 60,
   "log_dir": "logs",
