@@ -132,27 +132,41 @@
             dot.className = 'status-dot';
             text.textContent = '데이터 로딩 중...';
 
+            // 방법 1: fetch (웹서버에서 열 때)
+            // 방법 2: XMLHttpRequest (file://에서도 동작)
+            function tryFetch(url) {
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', url, true);
+                    xhr.onload = function() {
+                        if (xhr.status === 200 || xhr.status === 0) {
+                            try { resolve(JSON.parse(xhr.responseText)); }
+                            catch(e) { reject(e); }
+                        } else { reject(new Error('HTTP ' + xhr.status)); }
+                    };
+                    xhr.onerror = () => reject(new Error('네트워크 오류'));
+                    xhr.timeout = 10000;
+                    xhr.ontimeout = () => reject(new Error('타임아웃'));
+                    xhr.send();
+                });
+            }
+
             try {
-                const resp = await fetch(DATA_URL + '?t=' + Date.now());
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                rawData = await resp.json();
+                rawData = await tryFetch(DATA_URL + '?t=' + Date.now());
                 dot.classList.add('live');
                 text.textContent = `마지막 업데이트: ${rawData.records[rawData.records.length - 1]?.timestamp?.slice(0, 16).replace('T', ' ') || '-'} | ${rawData.records.length}건 기록`;
                 render(rawData);
             } catch (e) {
-                dot.classList.add('offline');
-                text.textContent = '데이터 로딩 실패: ' + e.message;
-
-                // 로컬 파일 시도
+                // GitHub 실패 시 로컬 파일 시도
                 try {
-                    const localResp = await fetch('tracker_data.json');
-                    if (localResp.ok) {
-                        rawData = await localResp.json();
-                        dot.className = 'status-dot live';
-                        text.textContent = `로컬 데이터 로드 | ${rawData.records.length}건`;
-                        render(rawData);
-                    }
-                } catch (e2) {}
+                    rawData = await tryFetch('tracker_data.json');
+                    dot.classList.add('live');
+                    text.textContent = `로컬 데이터 로드 | ${rawData.records.length}건 기록`;
+                    render(rawData);
+                } catch (e2) {
+                    dot.classList.add('offline');
+                    text.textContent = '데이터 로딩 실패 — tracker_data.json을 같은 폴더에 두거나 웹서버에서 열어주세요';
+                }
             }
         }
 
