@@ -130,13 +130,38 @@ def record():
         print("\nALERT_DETECTED")
         # 이메일 본문 생성
         lines = [
-            f"모다올 자동완성 부정 키워드 감지 ({now.strftime('%Y-%m-%d %H:%M KST')})",
-            "=" * 50,
+            "모다올 자동완성 부정 키워드가 감지되었습니다.",
+            f"확인 시각: {now.strftime('%Y-%m-%d %H:%M KST')}",
             "",
+            "=" * 50,
+            "감지된 부정 키워드:",
+            "=" * 50,
         ]
         for a in alerts:
-            lines.append(f"  [{a['platform'].upper()}] \"{a['term']}\" #{a['rank']}위 (매칭: {a['matched']})")
-        lines += ["", "---", "자동 발송 알림 | GitHub Actions"]
+            lines.append(f"  [{a['platform'].upper()}] \"{a['term']}\" (#{a['rank']}위, 매칭: '{a['matched']}')")
+
+        lines += [
+            "",
+            "=" * 50,
+            "전체 자동완성 현황:",
+            "=" * 50,
+        ]
+        for brand_kw in BRAND_KEYWORDS:
+            kw_data = record_entry["keywords"].get(brand_kw, {})
+            for platform in ["google", "naver"]:
+                terms = kw_data.get(platform, [])
+                if terms:
+                    lines.append(f"\n[{platform.upper()}] '{brand_kw}':")
+                    for t in terms:
+                        marker = " ⚠️" if t["sentiment"] == "negative" else ""
+                        lines.append(f"  {t['rank']}. {t['term']}{marker}")
+
+        lines += [
+            "",
+            "---",
+            "이 알림은 GitHub Actions에서 자동 발송되었습니다.",
+            "https://github.com/hy28lee/modaol-autocomplete-monitor",
+        ]
 
         with open("alert_email.txt", "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
