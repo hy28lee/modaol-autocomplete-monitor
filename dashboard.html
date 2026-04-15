@@ -157,61 +157,44 @@
         }
 
         function render(data) {
-            const records = data.records;
+            let records = data.records;
             if (!records.length) return;
 
-            // 날짜별 그룹핑
-            const byDate = {};
-            for (const r of records) {
-                if (!byDate[r.date]) byDate[r.date] = [];
-                byDate[r.date].push(r);
-            }
-
-            let dates = Object.keys(byDate).sort();
+            // 필터: 최근 N일
             if (filterDays > 0) {
-                dates = dates.slice(-filterDays);
+                const cutoff = new Date(Date.now() - filterDays * 86400000).toISOString().slice(0, 10);
+                records = records.filter(r => r.date >= cutoff);
+                if (!records.length) return;
             }
 
-            // 일별 키워드 평균 순위
+            // 각 기록별 타임스탬프 라벨 + 키워드 순위
+            const labels = [];
             const negTracked = {};
             const posTracked = {};
 
-            for (const date of dates) {
-                for (const r of byDate[date]) {
-                    for (const [brandKw, platforms] of Object.entries(r.keywords || {})) {
-                        for (const [platform, terms] of Object.entries(platforms)) {
-                            if (platform !== 'google') continue;
-                            for (const t of terms) {
-                                const cls = classify(t.term, brandKw);
-                                const bucket = cls.sentiment === 'negative' ? negTracked : cls.sentiment === 'positive' ? posTracked : null;
-                                if (!bucket) continue;
-                                if (!bucket[t.term]) bucket[t.term] = {};
-                                if (!bucket[t.term][date]) bucket[t.term][date] = [];
-                                bucket[t.term][date].push(t.rank);
-                            }
+            for (const r of records) {
+                const label = r.timestamp.slice(5, 16).replace('T', ' '); // "04-14 16:55"
+                labels.push(label);
+                const idx = labels.length - 1;
+
+                for (const [brandKw, platforms] of Object.entries(r.keywords || {})) {
+                    for (const [platform, terms] of Object.entries(platforms)) {
+                        if (platform !== 'google') continue;
+                        for (const t of terms) {
+                            const cls = classify(t.term, brandKw);
+                            const bucket = cls.sentiment === 'negative' ? negTracked : cls.sentiment === 'positive' ? posTracked : null;
+                            if (!bucket) continue;
+                            if (!bucket[t.term]) bucket[t.term] = new Array(records.length).fill(null);
+                            bucket[t.term][idx] = t.rank;
                         }
                     }
                 }
             }
 
-            function avgRanks(dateRanks) {
-                const result = {};
-                for (const [term, dr] of Object.entries(dateRanks)) {
-                    result[term] = {};
-                    for (const [date, ranks] of Object.entries(dr)) {
-                        result[term][date] = ranks.reduce((a, b) => a + b, 0) / ranks.length;
-                    }
-                }
-                return result;
-            }
-
-            const negAvg = avgRanks(negTracked);
-            const posAvg = avgRanks(posTracked);
-
             // 통계 카드
-            const latestDate = dates[dates.length - 1];
-            const latestNeg = Object.entries(negAvg).filter(([t, dr]) => dr[latestDate]).map(([t, dr]) => ({ term: t, rank: dr[latestDate] }));
-            const latestPos = Object.entries(posAvg).filter(([t, dr]) => dr[latestDate]).map(([t, dr]) => ({ term: t, rank: dr[latestDate] }));
+            const lastRecord = records[records.length - 1];
+            const latestNeg = Object.entries(negTracked).filter(([t, ranks]) => ranks[ranks.length - 1] != null).map(([t, ranks]) => ({ term: t, rank: ranks[ranks.length - 1] }));
+            const latestPos = Object.entries(posTracked).filter(([t, ranks]) => ranks[ranks.length - 1] != null).map(([t, ranks]) => ({ term: t, rank: ranks[ranks.length - 1] }));
             latestNeg.sort((a, b) => a.rank - b.rank);
             latestPos.sort((a, b) => a.rank - b.rank);
 
@@ -219,22 +202,23 @@
             document.getElementById('negCount').className = 'stat-num ' + (latestNeg.length > 0 ? 'red' : 'green');
             document.getElementById('posCount').textContent = latestPos.length;
             document.getElementById('posCount').className = 'stat-num green';
-            document.getElementById('topNegRank').textContent = latestNeg.length > 0 ? latestNeg[0].rank.toFixed(1) : '-';
+            document.getElementById('topNegRank').textContent = latestNeg.length > 0 ? latestNeg[0].rank : '-';
             document.getElementById('topNegRank').className = 'stat-num ' + (latestNeg.length > 0 ? 'yellow' : 'green');
-            document.getElementById('totalDays').textContent = dates.length;
+            const uniqueDays = new Set(records.map(r => r.date)).size;
+            document.getElementById('totalDays').textContent = records.length;
             document.getElementById('totalDays').className = 'stat-num blue';
 
             // 변화 요약
             let changeHtml = '<div class="section-title">순위 변화 요약</div><div class="chart-card">';
-            if (dates.length >= 2) {
-                const first = dates[0], last = dates[dates.length - 1];
-                for (const [term, dr] of Object.entries(negAvg)) {
-                    const firstR = dr[first], lastR = dr[last];
+            if (records.length >= 2) {
+                for (const [term, ranks] of Object.entries(negTracked)) {
+                    const firstR = ranks.find(r => r != null);
+                    const lastR = [...ranks].reverse().find(r => r != null);
                     if (firstR != null && lastR != null) {
                         const diff = lastR - firstR;
-                        if (diff > 0) changeHtml += `<div class="change-item good">"${term}" ${firstR.toFixed(1)}위 → ${lastR.toFixed(1)}위 (▼${diff.toFixed(1)} 하락, 개선)</div>`;
-                        else if (diff < 0) changeHtml += `<div class="change-item bad">"${term}" ${firstR.toFixed(1)}위 → ${lastR.toFixed(1)}위 (▲${Math.abs(diff).toFixed(1)} 상승, 악화)</div>`;
-                        else changeHtml += `<div class="change-item neutral">"${term}" ${lastR.toFixed(1)}위 유지</div>`;
+                        if (diff > 0) changeHtml += `<div class="change-item good">"${term}" ${firstR}위 → ${lastR}위 (▼${diff} 하락, 개선)</div>`;
+                        else if (diff < 0) changeHtml += `<div class="change-item bad">"${term}" ${firstR}위 → ${lastR}위 (▲${Math.abs(diff)} 상승, 악화)</div>`;
+                        else changeHtml += `<div class="change-item neutral">"${term}" ${lastR}위 유지</div>`;
                     }
                 }
             } else {
@@ -249,18 +233,18 @@
                 interaction: { intersect: false, mode: 'index' },
                 scales: {
                     y: { reverse: true, min: 1, max: 12, ticks: { stepSize: 1, color: '#888' }, grid: { color: '#243447' }, title: { display: true, text: '순위 (1=최상위)', color: '#888' } },
-                    x: { ticks: { color: '#888', maxRotation: 45 }, grid: { color: '#243447' } }
+                    x: { ticks: { color: '#888', maxRotation: 45, maxTicksLimit: 20 }, grid: { color: '#243447' } }
                 },
                 plugins: {
                     legend: { labels: { color: '#ccc' } },
-                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '위' } }
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + '위' } }
                 }
             };
 
-            function makeDatasets(avgData, colors) {
-                return Object.entries(avgData).map(([term, dr], i) => ({
+            function makeDatasets(tracked, colors) {
+                return Object.entries(tracked).map(([term, ranks], i) => ({
                     label: term,
-                    data: dates.map(d => dr[d] ?? null),
+                    data: ranks,
                     borderColor: colors[i % colors.length],
                     backgroundColor: colors[i % colors.length] + '20',
                     tension: 0.3, pointRadius: 4, pointHoverRadius: 6, spanGaps: true,
@@ -272,13 +256,13 @@
 
             negChart = new Chart(document.getElementById('negChart'), {
                 type: 'line',
-                data: { labels: dates, datasets: makeDatasets(negAvg, NEG_COLORS) },
+                data: { labels: labels, datasets: makeDatasets(negTracked, NEG_COLORS) },
                 options: chartOptions
             });
 
             posChart = new Chart(document.getElementById('posChart'), {
                 type: 'line',
-                data: { labels: dates, datasets: makeDatasets(posAvg, POS_COLORS) },
+                data: { labels: labels, datasets: makeDatasets(posTracked, POS_COLORS) },
                 options: chartOptions
             });
 
@@ -302,7 +286,7 @@
             for (const item of allLatest) {
                 const rankClass = item.sentiment === 'negative' ? 'neg' : item.sentiment === 'positive' ? 'pos' : '';
                 const badgeText = { negative: '부정', positive: '긍정', neutral: '중립' }[item.sentiment];
-                tableHtml += `<tr><td class="rank ${rankClass}">#${typeof item.rank === 'number' ? item.rank.toFixed(1) : item.rank}</td><td>${item.term}</td><td><span class="badge ${item.sentiment}">${badgeText}</span></td><td>Google</td></tr>`;
+                tableHtml += `<tr><td class="rank ${rankClass}">#${item.rank}</td><td>${item.term}</td><td><span class="badge ${item.sentiment}">${badgeText}</span></td><td>Google</td></tr>`;
             }
             tableHtml += '</table>';
             document.getElementById('detailTable').innerHTML = tableHtml;
