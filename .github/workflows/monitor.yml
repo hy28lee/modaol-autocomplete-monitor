@@ -57,10 +57,19 @@ jobs:
           to: snuhkist83@gmail.com, ceo@moainetworks.com
           from: 모다올 모니터링 <${{ secrets.GMAIL_USER }}>
 
+      - name: tracker_data.js 생성 (로컬 대시보드용)
+        run: |
+          python -c "
+          with open('tracker_data.json', 'r', encoding='utf-8') as f:
+              data = f.read().strip()
+          with open('tracker_data.js', 'w', encoding='utf-8') as f:
+              f.write('var TRACKER_DATA = ' + data + ';')
+          "
+
       - name: 트래커 데이터 커밋
         run: |
           git config user.name "modaol-bot"
           git config user.email "bot@modaol.co.kr"
-          git add tracker_data.json
+          git add tracker_data.json tracker_data.js
           git diff --staged --quiet || git commit -m "data: $(date -u +%Y-%m-%dT%H:%M)"
           git push

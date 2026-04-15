@@ -99,6 +99,8 @@
         </div>
     </div>
 
+    <!-- file:// fallback: tracker_data.js sets window.TRACKER_DATA -->
+    <script src="tracker_data.js"></script>
     <script>
         // GitHub Raw URL에서 tracker_data.json을 불러옴
         const DATA_URL = 'https://raw.githubusercontent.com/hy28lee/modaol-autocomplete-monitor/master/tracker_data.json';
@@ -132,8 +134,6 @@
             dot.className = 'status-dot';
             text.textContent = '데이터 로딩 중...';
 
-            // 방법 1: fetch (웹서버에서 열 때)
-            // 방법 2: XMLHttpRequest (file://에서도 동작)
             function tryFetch(url) {
                 return new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
@@ -151,23 +151,36 @@
                 });
             }
 
+            // 방법 1: GitHub raw URL에서 fetch
             try {
                 rawData = await tryFetch(DATA_URL + '?t=' + Date.now());
                 dot.classList.add('live');
                 text.textContent = `마지막 업데이트: ${rawData.records[rawData.records.length - 1]?.timestamp?.slice(0, 16).replace('T', ' ') || '-'} | ${rawData.records.length}건 기록`;
                 render(rawData);
-            } catch (e) {
-                // GitHub 실패 시 로컬 파일 시도
-                try {
-                    rawData = await tryFetch('tracker_data.json');
-                    dot.classList.add('live');
-                    text.textContent = `로컬 데이터 로드 | ${rawData.records.length}건 기록`;
-                    render(rawData);
-                } catch (e2) {
-                    dot.classList.add('offline');
-                    text.textContent = '데이터 로딩 실패 — tracker_data.json을 같은 폴더에 두거나 웹서버에서 열어주세요';
-                }
+                return;
+            } catch (e) { /* GitHub fetch 실패, 다음 방법 시도 */ }
+
+            // 방법 2: 로컬 JSON fetch (웹서버에서 열 때 동작)
+            try {
+                rawData = await tryFetch('tracker_data.json');
+                dot.classList.add('live');
+                text.textContent = `로컬 데이터 로드 | ${rawData.records.length}건 기록`;
+                render(rawData);
+                return;
+            } catch (e2) { /* 로컬 fetch도 실패, 다음 방법 시도 */ }
+
+            // 방법 3: <script src="tracker_data.js">로 미리 로드된 전역 변수 사용
+            // file:// 프로토콜에서 fetch/XHR이 모두 차단되어도 동작
+            if (typeof TRACKER_DATA !== 'undefined' && TRACKER_DATA && TRACKER_DATA.records) {
+                rawData = TRACKER_DATA;
+                dot.classList.add('live');
+                text.textContent = `로컬 JS 데이터 로드 | ${rawData.records.length}건 기록`;
+                render(rawData);
+                return;
             }
+
+            dot.classList.add('offline');
+            text.textContent = '데이터 로딩 실패 — tracker_data.js를 같은 폴더에 두고 다시 열어주세요';
         }
 
         function render(data) {
