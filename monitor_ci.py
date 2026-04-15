@@ -39,7 +39,7 @@ def fetch_naver_autocomplete(keyword):
 
 def fetch_google_autocomplete(keyword):
     url = "https://suggestqueries.google.com/complete/search"
-    params = {"client": "firefox", "q": keyword, "hl": "ko"}
+    params = {"client": "chrome", "q": keyword + " ", "hl": "ko", "gl": "kr"}
     try:
         resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()

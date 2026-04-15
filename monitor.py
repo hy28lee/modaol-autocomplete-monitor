@@ -73,9 +73,10 @@ def fetch_google_autocomplete(keyword):
     """구글 자동완성 키워드를 가져옵니다."""
     url = "https://suggestqueries.google.com/complete/search"
     params = {
-        "client": "firefox",
-        "q": keyword,
+        "client": "chrome",
+        "q": keyword + " ",
         "hl": "ko",
+        "gl": "kr",
     }
     try:
         resp = requests.get(url, params=params, timeout=10)
