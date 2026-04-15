@@ -1,0 +1,46 @@
+name: modaol-email-alert
+
+on:
+  schedule:
+    # 4시간 간격 (UTC 0,4,8,12,16,20시 = KST 9,13,17,21,1,5시)
+    - cron: '0 0,4,8,12,16,20 * * *'
+  workflow_dispatch:
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      - name: 부정 키워드 체크
+        id: check
+        run: |
+          python tracker_ci.py record | tee result.txt
+          if grep -q "ALERT_DETECTED" result.txt; then
+            echo "alert_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "alert_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 알림 이메일 발송
+        if: steps.check.outputs.alert_found == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "🚨 모다올 자동완성 부정 키워드 감지"
+          body: file://alert_email.txt
+          to: snuhkist83@gmail.com, ceo@moainetworks.com
+          from: 모다올 모니터링 <${{ secrets.GMAIL_USER }}>

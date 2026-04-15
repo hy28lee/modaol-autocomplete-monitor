@@ -25,39 +25,9 @@ jobs:
         run: pip install requests
 
       - name: 모니터링 + 순위 기록
-        id: check
-        run: |
-          python tracker_ci.py record | tee result.txt
+        run: python tracker_ci.py record
 
-          # 부정 키워드 감지 여부
-          if grep -q "ALERT_DETECTED" result.txt; then
-            echo "alert_found=true" >> $GITHUB_OUTPUT
-          else
-            echo "alert_found=false" >> $GITHUB_OUTPUT
-          fi
-
-          # 4시간 간격 이메일 발송 체크 (UTC 0,4,8,12,16,20시)
-          HOUR=$(date -u +%H)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ $((10#$HOUR % 4)) -eq 0 ]; then
-            echo "email_time=true" >> $GITHUB_OUTPUT
-          else
-            echo "email_time=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 알림 이메일 발송
-        if: steps.check.outputs.alert_found == 'true' && steps.check.outputs.email_time == 'true'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.GMAIL_USER }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "🚨 모다올 자동완성 부정 키워드 감지"
-          body: file://alert_email.txt
-          to: snuhkist83@gmail.com, ceo@moainetworks.com
-          from: 모다올 모니터링 <${{ secrets.GMAIL_USER }}>
-
-      - name: tracker_data.js 생성 (로컬 대시보드용)
+      - name: tracker_data.js 생성
         run: |
           python -c "
           with open('tracker_data.json', 'r', encoding='utf-8') as f:

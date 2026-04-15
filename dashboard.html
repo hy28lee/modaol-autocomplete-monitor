@@ -134,50 +134,47 @@
             dot.className = 'status-dot';
             text.textContent = '데이터 로딩 중...';
 
-            function tryFetch(url) {
-                return new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', url, true);
-                    xhr.onload = function() {
-                        if (xhr.status === 200 || xhr.status === 0) {
-                            try { resolve(JSON.parse(xhr.responseText)); }
-                            catch(e) { reject(e); }
-                        } else { reject(new Error('HTTP ' + xhr.status)); }
-                    };
-                    xhr.onerror = () => reject(new Error('네트워크 오류'));
-                    xhr.timeout = 10000;
-                    xhr.ontimeout = () => reject(new Error('타임아웃'));
-                    xhr.send();
-                });
-            }
-
-            // 방법 1: GitHub raw URL에서 fetch
-            try {
-                rawData = await tryFetch(DATA_URL + '?t=' + Date.now());
-                dot.classList.add('live');
-                text.textContent = `마지막 업데이트: ${rawData.records[rawData.records.length - 1]?.timestamp?.slice(0, 16).replace('T', ' ') || '-'} | ${rawData.records.length}건 기록`;
-                render(rawData);
-                return;
-            } catch (e) { /* GitHub fetch 실패, 다음 방법 시도 */ }
-
-            // 방법 2: 로컬 JSON fetch (웹서버에서 열 때 동작)
-            try {
-                rawData = await tryFetch('tracker_data.json');
-                dot.classList.add('live');
-                text.textContent = `로컬 데이터 로드 | ${rawData.records.length}건 기록`;
-                render(rawData);
-                return;
-            } catch (e2) { /* 로컬 fetch도 실패, 다음 방법 시도 */ }
-
-            // 방법 3: <script src="tracker_data.js">로 미리 로드된 전역 변수 사용
-            // file:// 프로토콜에서 fetch/XHR이 모두 차단되어도 동작
+            // 방법 1 (가장 빠름): <script src="tracker_data.js">로 미리 로드된 전역 변수
+            // file:// 프로토콜에서도 확실히 동작
             if (typeof TRACKER_DATA !== 'undefined' && TRACKER_DATA && TRACKER_DATA.records) {
                 rawData = TRACKER_DATA;
                 dot.classList.add('live');
-                text.textContent = `로컬 JS 데이터 로드 | ${rawData.records.length}건 기록`;
+                text.textContent = `데이터 로드 완료 | ${rawData.records.length}건 기록 | 최신: ${rawData.records[rawData.records.length - 1]?.timestamp?.slice(0, 16).replace('T', ' ') || '-'}`;
                 render(rawData);
+
+                // 백그라운드에서 GitHub 최신 데이터도 시도 (더 최신 데이터가 있을 수 있음)
+                try {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', DATA_URL + '?t=' + Date.now(), true);
+                    xhr.timeout = 5000;
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            try {
+                                const fresh = JSON.parse(xhr.responseText);
+                                if (fresh.records && fresh.records.length > rawData.records.length) {
+                                    rawData = fresh;
+                                    text.textContent = `GitHub 최신 데이터 | ${rawData.records.length}건 기록 | 최신: ${rawData.records[rawData.records.length - 1]?.timestamp?.slice(0, 16).replace('T', ' ') || '-'}`;
+                                    render(rawData);
+                                }
+                            } catch(e) {}
+                        }
+                    };
+                    xhr.send();
+                } catch(e) {}
                 return;
             }
+
+            // 방법 2: GitHub raw URL에서 직접 fetch
+            try {
+                const resp = await fetch(DATA_URL + '?t=' + Date.now());
+                if (resp.ok) {
+                    rawData = await resp.json();
+                    dot.classList.add('live');
+                    text.textContent = `GitHub 데이터 로드 | ${rawData.records.length}건 기록`;
+                    render(rawData);
+                    return;
+                }
+            } catch (e) {}
 
             dot.classList.add('offline');
             text.textContent = '데이터 로딩 실패 — tracker_data.js를 같은 폴더에 두고 다시 열어주세요';
@@ -296,8 +293,7 @@
             // 상세 테이블
             let tableHtml = '<table><tr><th>순위</th><th>키워드</th><th>분류</th><th>플랫폼</th></tr>';
             const allLatest = [...latestNeg.map(n => ({...n, sentiment: 'negative'})), ...latestPos.map(p => ({...p, sentiment: 'positive'}))];
-            // 중립도 추가
-            const lastRecord = records[records.length - 1];
+            // 중립도 추가 (lastRecord는 위에서 이미 선언됨)
             if (lastRecord) {
                 for (const [brandKw, platforms] of Object.entries(lastRecord.keywords || {})) {
                     for (const t of (platforms.google || [])) {
