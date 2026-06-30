@@ -200481,6 +200481,284 @@ var TRACKER_DATA = {
           "naver": []
         }
       }
+    },
+    {
+      "timestamp": "2026-06-30T21:13:19.565501+09:00",
+      "date": "2026-06-30",
+      "hour": 21,
+      "keywords": {
+        "모다올": {
+          "google": [
+            {
+              "rank": 1,
+              "term": "모다올 후기",
+              "sentiment": "positive",
+              "matched": "후기"
+            },
+            {
+              "rank": 2,
+              "term": "모다올 의원",
+              "sentiment": "neutral",
+              "matched": "의원"
+            },
+            {
+              "rank": 3,
+              "term": "모다올 디시",
+              "sentiment": "neutral",
+              "matched": "디시"
+            },
+            {
+              "rank": 4,
+              "term": "모다올 가격",
+              "sentiment": "positive",
+              "matched": "가격"
+            },
+            {
+              "rank": 5,
+              "term": "모다올 홍준현",
+              "sentiment": "neutral",
+              "matched": "홍준현"
+            },
+            {
+              "rank": 6,
+              "term": "모다올 실패",
+              "sentiment": "negative",
+              "matched": "실패"
+            },
+            {
+              "rank": 7,
+              "term": "모다올 양유군",
+              "sentiment": "neutral",
+              "matched": "양유군"
+            },
+            {
+              "rank": 8,
+              "term": "모다올 대다모",
+              "sentiment": "neutral",
+              "matched": "대다모"
+            },
+            {
+              "rank": 9,
+              "term": "모다올 모발이식",
+              "sentiment": "neutral",
+              "matched": "모발이식"
+            },
+            {
+              "rank": 10,
+              "term": "모다올 후기 디시",
+              "sentiment": "positive",
+              "matched": "후기"
+            },
+            {
+              "rank": 11,
+              "term": "모다올",
+              "sentiment": "neutral",
+              "matched": ""
+            }
+          ],
+          "naver": []
+        },
+        "모 다올": {
+          "google": [
+            {
+              "rank": 1,
+              "term": "다올 모 먼트",
+              "sentiment": "neutral",
+              "matched": "다올 모 먼트"
+            },
+            {
+              "rank": 2,
+              "term": "모다올",
+              "sentiment": "neutral",
+              "matched": "모다올"
+            },
+            {
+              "rank": 3,
+              "term": "모다올 실패",
+              "sentiment": "negative",
+              "matched": "실패"
+            },
+            {
+              "rank": 4,
+              "term": "모다올의원",
+              "sentiment": "neutral",
+              "matched": "모다올의원"
+            },
+            {
+              "rank": 5,
+              "term": "모다올 가격",
+              "sentiment": "positive",
+              "matched": "가격"
+            },
+            {
+              "rank": 6,
+              "term": "모다올 후기",
+              "sentiment": "positive",
+              "matched": "후기"
+            }
+          ],
+          "naver": []
+        },
+        "모다 올": {
+          "google": [
+            {
+              "rank": 1,
+              "term": "모다 올 실패",
+              "sentiment": "negative",
+              "matched": "실패"
+            },
+            {
+              "rank": 2,
+              "term": "모다 올",
+              "sentiment": "neutral",
+              "matched": ""
+            },
+            {
+              "rank": 3,
+              "term": "모다 올 의원",
+              "sentiment": "neutral",
+              "matched": "의원"
+            },
+            {
+              "rank": 4,
+              "term": "모다 올 디시",
+              "sentiment": "neutral",
+              "matched": "디시"
+            },
+            {
+              "rank": 5,
+              "term": "모다 올 후기",
+              "sentiment": "positive",
+              "matched": "후기"
+            },
+            {
+              "rank": 6,
+              "term": "모다 올 가격",
+              "sentiment": "positive",
+              "matched": "가격"
+            },
+            {
+              "rank": 7,
+              "term": "모다올 양유군",
+              "sentiment": "neutral",
+              "matched": "모다올 양유군"
+            },
+            {
+              "rank": 8,
+              "term": "모다 올 홍준현",
+              "sentiment": "neutral",
+              "matched": "홍준현"
+            },
+            {
+              "rank": 9,
+              "term": "모다 올 의원 리뷰",
+              "sentiment": "positive",
+              "matched": "리뷰"
+            },
+            {
+              "rank": 10,
+              "term": "모다 올 대다모",
+              "sentiment": "neutral",
+              "matched": "대다모"
+            },
+            {
+              "rank": 11,
+              "term": "모다 올 모발 이식",
+              "sentiment": "neutral",
+              "matched": "모발 이식"
+            },
+            {
+              "rank": 12,
+              "term": "모다 올 비용",
+              "sentiment": "positive",
+              "matched": "비용"
+            },
+            {
+              "rank": 13,
+              "term": "모다 올 후기 디시",
+              "sentiment": "positive",
+              "matched": "후기"
+            },
+            {
+              "rank": 14,
+              "term": "모다 모다 새치 올 커버 스틱",
+              "sentiment": "neutral",
+              "matched": "모다 모다 새치 올 커버 스틱"
+            }
+          ],
+          "naver": []
+        },
+        "모 다 올": {
+          "google": [
+            {
+              "rank": 1,
+              "term": "올마이트 모 다이죠부",
+              "sentiment": "neutral",
+              "matched": "올마이트 모 다이죠부"
+            },
+            {
+              "rank": 2,
+              "term": "모다올 실패",
+              "sentiment": "negative",
+              "matched": "실패"
+            },
+            {
+              "rank": 3,
+              "term": "모다올 후기",
+              "sentiment": "positive",
+              "matched": "후기"
+            },
+            {
+              "rank": 4,
+              "term": "모다올",
+              "sentiment": "neutral",
+              "matched": "모다올"
+            },
+            {
+              "rank": 5,
+              "term": "모다올 가격",
+              "sentiment": "positive",
+              "matched": "가격"
+            },
+            {
+              "rank": 6,
+              "term": "모다올의원",
+              "sentiment": "neutral",
+              "matched": "모다올의원"
+            }
+          ],
+          "naver": []
+        },
+        "모다올의원": {
+          "google": [
+            {
+              "rank": 1,
+              "term": "모다올의원 리뷰",
+              "sentiment": "positive",
+              "matched": "리뷰"
+            },
+            {
+              "rank": 2,
+              "term": "모다올의원",
+              "sentiment": "neutral",
+              "matched": ""
+            },
+            {
+              "rank": 3,
+              "term": "모다올 가격",
+              "sentiment": "positive",
+              "matched": "가격"
+            },
+            {
+              "rank": 4,
+              "term": "모다올 비용",
+              "sentiment": "positive",
+              "matched": "비용"
+            }
+          ],
+          "naver": []
+        }
+      }
     }
   ]
 };
